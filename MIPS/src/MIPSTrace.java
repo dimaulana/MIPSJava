@@ -22,6 +22,11 @@ public class MIPSTrace {
 		}
 	}
 	
+	String opcode;
+	int op;
+	int RegDST, ALUOp1, ALUOp0, ALUSrc, Branch, MemRead, MemWrite, RegWrite, MemtoReg;
+	
+	
 	private Map<Integer, Integer> registers;
 	private Map<Integer, Integer> memory;
 	
@@ -33,7 +38,7 @@ public class MIPSTrace {
 		Scanner in = new Scanner(System.in);
 		
 		String[] instruction = in.nextLine().split(" ");
-		String opcode = instruction[0];
+		opcode = instruction[0];
 
 		getIn(instruction);
 		in.close();
@@ -55,13 +60,21 @@ public class MIPSTrace {
 			System.out.print(i + " ");
 		}
 		System.out.println("]");
+	
+	
+		int[] EXBuffer = InformationExecute(IDBuffer);
+		
+		System.out.print("EX/MEM Buffer" + " : [");
+		for (int i : EXBuffer) {
+			System.out.print(i + " ");
+		}
+		System.out.println("]");
 	}
 	
 	private int[] InformationFetch(String[] instruction, int PC) throws Exception {
 		
 		PC += 4;
 		
-		String opcode;
 		int operand1;
 		int operand2;
 		int operand3;
@@ -123,16 +136,52 @@ public class MIPSTrace {
 		
 		if (op == 0) {
 			System.out.println("Control Vector : [ 1 1 0 0 0 0 0 1 0 ]");
+			RegDST = 1;
+			ALUOp1 = 1;
+			ALUOp0 = 0;
+			ALUSrc = 0;
+			Branch = 0;
+			MemRead = 0;
+			MemWrite = 0;
+			RegWrite = 1;
+			MemtoReg = 0;
 			opcode += IFBuffer[5];
 		}
 		else if (op == 35) {
 			System.out.println("Control Vector : [ 0 0 0 1 0 1 0 1 1 ]");
+			RegDST = 0;
+			ALUOp1 = 0;
+			ALUOp0 = 0;
+			ALUSrc = 1;
+			Branch = 0;
+			MemRead = 1;
+			MemWrite = 0;
+			RegWrite = 1;
+			MemtoReg = 1;
 		}
 		else if (op == 43) { 
 			System.out.println("Control Vector : [ x 0 0 1 0 0 1 0 x ]");
+			RegDST = 0;
+			ALUOp1 = 0;
+			ALUOp0 = 0;
+			ALUSrc = 1;
+			Branch = 0;
+			MemRead = 0;
+			MemWrite = 1;
+			RegWrite = 0;
+			MemtoReg = 0;
 		}
 		else if (op == 4) {
 			System.out.println("Control Vector : [ x 0 1 0 1 0 0 0 x ]");
+			RegDST = 0;
+			ALUOp1 = 0;
+			ALUOp0 = 1;
+			ALUSrc = 0;
+			Branch = 1;
+			MemRead = 0;
+			MemWrite = 0;
+			RegWrite = 0;
+			MemtoReg = 0;
 		}
 		
 		int readRegister1 = IFBuffer[1];
@@ -144,14 +193,56 @@ public class MIPSTrace {
 		return new int[] { destinationRegister, -1, -1, readData2, readData1, PC };
 	}
 	
+		private int[] InformationExecute(int[] IDBuffer) throws Exception {
+			
+			int readData2 = IDBuffer[3];
+			int readData1 = IDBuffer[4];
+			int aluResult = 0;
+			int destination = IDBuffer[0];
+			int mux12 = RegDST;
+			int mux11 = ALUSrc;
+			
+			switch (opcode) 
+			{
+			case "add": 
+				aluResult = readData2 + readData1;
+				System.out.println("ALU Result: " + aluResult);
+				if (mux12 == 1) destination = 100;
+				break;
+				
+			case "sub":
+				aluResult = readData2 - readData1;
+				System.out.println("ALU Result: " + aluResult);
+				break;
+				
+			}
+			
+			
+			return new int[] {destination, readData2, aluResult, 0};
+		}
+		
 		
 		private void getIn(String[] in) throws Exception {
 			try {
 				Scanner s = new Scanner(System.in);
-				for (int i = 2; i < in.length; i++)
+				
+				if (opcode.equals("add") || opcode.equals("sub"))
 				{
-				System.out.println("Enter register value for R"+ in[i]+":");
-				registers.put(Integer.parseInt(in[i]), Integer.parseInt(s.nextLine()));
+					for (int i = 2; i < in.length; i++)
+					{
+						System.out.println("Enter register value for R"+ in[i]+":");
+						registers.put(Integer.parseInt(in[i]), Integer.parseInt(s.nextLine()));
+					}
+				}
+				if (opcode.equals("lw") || opcode.equals("sw") || opcode.equals("beq")) 
+				{
+					for (int i = 1; i < in.length - 1; i++)
+					{
+						System.out.println("Enter register value for R"+ in[i]+":");
+						registers.put(Integer.parseInt(in[i]), Integer.parseInt(s.nextLine()));
+					}
+					System.out.println("Enter value for offset: ");
+					registers.put(Integer.parseInt(in[3]), Integer.parseInt(s.nextLine()));	
 				}
 
 			} catch (Exception ex) {
