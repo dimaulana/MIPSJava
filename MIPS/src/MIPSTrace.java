@@ -39,8 +39,8 @@ public class MIPSTrace {
 		
 		String[] instruction = in.nextLine().split(" ");
 		opcode = instruction[0];
-
 		getIn(instruction);
+		
 		in.close();
 		
 		int[] IFBuffer = InformationFetch(instruction, 0);
@@ -115,22 +115,34 @@ public class MIPSTrace {
 	
 	private int[] InformationDecode(int[] IFBuffer) throws Exception {
 		
+		
 		int PC = -1;
-		int destinationRegister = -1;
-		if (IFBuffer[0] == 0) {
-			destinationRegister = IFBuffer[3];
+		int IR2016 = -1;
+		int IR1511 = -1;
+		int signExtended = -1;
+		
+		
+		if (IFBuffer[0] == 0) 	
+			{
 			PC = IFBuffer[6];
-		}
-		else {
+			IR2016 = IFBuffer[2];
+			IR1511 = IFBuffer[3];
+			}
+		
+		if (IFBuffer[0] == 35 || IFBuffer[0] == 43 || IFBuffer[0] == 4) {
 			PC = IFBuffer[4];
-		}
+			signExtended = IFBuffer[3];
+			IR2016 = IFBuffer[2];
+			IR1511 = 0;
+			}
+		
+
 		
 		int op = IFBuffer[0];
 		String opcode = op + "";
 		if (op == 0) {
 			opcode += "-"+IFBuffer[5];
 		}
-		
 		System.out.println("Opcode : " + opcode);
 		System.out.println("Control Vector : [ Reg-Dst ALU-Op1 ALU-Op0 ALU-Src Branch Mem-Read Mem-Write Reg-Write Mem-to-Reg ]");
 		
@@ -190,35 +202,51 @@ public class MIPSTrace {
 		int readData1 = registers.get(readRegister1);
 		int readData2 = registers.get(readRegister2);
 		
-		return new int[] { destinationRegister, -1, -1, readData2, readData1, PC };
+		return new int[] { IR1511, IR2016, signExtended, readData2, readData1, PC };
 	}
 	
 		private int[] InformationExecute(int[] IDBuffer) throws Exception {
 			
 			int readData2 = IDBuffer[3];
 			int readData1 = IDBuffer[4];
+			int zero = 0;
+			int adder;
+			int address = IDBuffer[5];
 			int aluResult = 0;
 			int destination = IDBuffer[0];
 			int mux12 = RegDST;
 			int mux11 = ALUSrc;
 			
+			if (mux12 == 0) destination = IDBuffer[2]; 	
+			
 			switch (opcode) 
 			{
 			case "add": 
-				aluResult = readData2 + readData1;
+				aluResult = readData1 + readData2;
 				System.out.println("ALU Result: " + aluResult);
-				if (mux12 == 1) destination = 100;
 				break;
 				
 			case "sub":
-				aluResult = readData2 - readData1;
+				aluResult = readData1 - readData2;
 				System.out.println("ALU Result: " + aluResult);
 				break;
+			
+			case "lw": 
+				aluResult = readData1 + IDBuffer[2];
+				break;
 				
+			case "sw":
+				aluResult = readData1 + IDBuffer[2];
+				break;
+				
+			case "beq":
+				if (readData2 == readData1) zero = 1;
+				aluResult = readData1 + readData2;
+				break;
 			}
 			
 			
-			return new int[] {destination, readData2, aluResult, 0};
+			return new int[] {destination, readData2, aluResult, zero, address};
 		}
 		
 		
@@ -241,8 +269,7 @@ public class MIPSTrace {
 						System.out.println("Enter register value for R"+ in[i]+":");
 						registers.put(Integer.parseInt(in[i]), Integer.parseInt(s.nextLine()));
 					}
-					System.out.println("Enter value for offset: ");
-					registers.put(Integer.parseInt(in[3]), Integer.parseInt(s.nextLine()));	
+					
 				}
 
 			} catch (Exception ex) {
