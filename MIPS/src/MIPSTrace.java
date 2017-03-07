@@ -222,10 +222,9 @@ public class MIPSTrace {
 			opcode += ""+IFBuffer[5];
 		}
 		System.out.println("Opcode : " + opcode);
-		System.out.println("Control Vector : [ Reg-Dst ALU-Op1 ALU-Op0 ALU-Src Branch Mem-Read Mem-Write Reg-Write Mem-to-Reg ]");
 		
 		if (op == 0) {
-		System.out.println("Control Vector : [ 1 1 0 0 0 0 0 1 0 ]");
+			printControlVector(new int[] { 1, 1, 0, 0, 0, 0, 0, 1, 0});
 			RegDST = 1;
 			ALUOp1 = 1;
 			ALUOp0 = 0;
@@ -238,7 +237,7 @@ public class MIPSTrace {
 			opcode += IFBuffer[5];
 		}
 		else if (op == 35) {
-			System.out.println("Control Vector : [ 0 0 0 1 0 1 0 1 1 ]");
+			printControlVector(new int[] { 0, 0, 0, 1, 0, 1, 0, 1, 1});
 			RegDST = 0;
 			ALUOp1 = 0;
 			ALUOp0 = 0;
@@ -250,7 +249,7 @@ public class MIPSTrace {
 			MemtoReg = 1;
 		}
 		else if (op == 43) { 
-			System.out.println("Control Vector : [ x 0 0 1 0 0 1 0 x ]");
+			printControlVector(new int[] { -1, 0, 0, 1, 0, 0, 1, 0, -1});
 			RegDST = 0;
 			ALUOp1 = 0;
 			ALUOp0 = 0;
@@ -262,6 +261,7 @@ public class MIPSTrace {
 			MemtoReg = 0;
 		}
 		else if (op == 4) {
+			printControlVector(new int[] { -1, 0, 1, 0, 1, 0, 0, 0, -1});
 			System.out.println("Control Vector : [ x 0 1 0 1 0 0 0 x ]");
 			RegDST = 0;
 			ALUOp1 = 0;
@@ -445,7 +445,7 @@ public class MIPSTrace {
 			}
 		}
 			
-			private void getMemory() throws Exception {
+		private void getMemory() throws Exception {
 				try {
 					Scanner s = new Scanner(System.in);
 					
@@ -458,5 +458,15 @@ public class MIPSTrace {
 				} catch (Exception ex) {
 					throw new Exception("Invalid Input");
 				}
-	}
+		}
+		
+		private void printControlVector(int[] vector) {
+			System.out.println("Control Vector:");
+			System.out.println("-----------------------------------------------------------------------------------------");
+			System.out.println("| RegDST | ALUOp1 | ALUOp0 | ALUSrc | Branch | MemRead | MemWrite | RegWrite | MemtoReg |");
+			System.out.println("-----------------------------------------------------------------------------------------");
+			System.out.println("|   "+vector[0]+"    |    "+vector[1]+"   |    "+vector[2]+"   |    "+vector[3]+"   |    "
+					+vector[4]+"   |    "+vector[5]+"    |     "+vector[6]+"    |     "+vector[7]+"    |     "+vector[8]+"    |");
+			System.out.println("-----------------------------------------------------------------------------------------");
+		}
 }
