@@ -5,11 +5,6 @@ import java.util.Scanner;
 /**
  * @author Dido Maulana
  * @author Greg Berezny
- * 
- * user checks
- * 
- * overall
- * 
  */
 public class MIPSTrace {
 	
@@ -36,7 +31,6 @@ public class MIPSTrace {
 			}
 		}
 	}
-	
 	String opcode;
 	int op;
 	int RegDST, ALUOp1, ALUOp0, ALUSrc, Branch, MemRead, MemWrite, RegWrite, MemtoReg;
@@ -57,6 +51,7 @@ public class MIPSTrace {
 		
 		int[] IFBuffer = InformationFetch(instruction, 0);
 		
+		System.out.println("*************************************");
 		System.out.print("IF/ID Buffer" + " : [ ");
 		for (int i : IFBuffer) {
 			System.out.print(i + " ");
@@ -89,6 +84,7 @@ public class MIPSTrace {
 			System.out.print(i + " ");
 		}
 		System.out.println("]");
+		System.out.println("*************************************");
 	}
 	
 	private int[] InformationFetch(String[] instruction, int PC) throws Exception {
@@ -230,29 +226,30 @@ public class MIPSTrace {
 			int readData2 = IDBuffer[3];
 			int readData1 = IDBuffer[4];
 			int zero = 0;
-			int adder;
 			int address = IDBuffer[5];
 			int aluResult = 0;
 			int destination = IDBuffer[0];
 			int mux12 = RegDST;
 			int mux11 = ALUSrc;
 			
-			if (mux12 == 0) destination = IDBuffer[2]; 	
+			
+			if (mux12 == 0) destination = IDBuffer[1]; 	
+			address += (IDBuffer[2]*4);
+			
 			
 			switch (opcode) 
 			{
 			case "add": 
 				aluResult = readData1 + readData2;
-				System.out.println("ALU Result: " + aluResult);
 				break;
 				
 			case "sub":
 				aluResult = readData1 - readData2;
-				System.out.println("ALU Result: " + aluResult);
 				break;
 			
 			case "lw": 
 				aluResult = readData1 + IDBuffer[2];
+				
 				break;
 				
 			case "sw":
@@ -261,14 +258,21 @@ public class MIPSTrace {
 				
 			case "beq":
 				if (readData2 == readData1) zero = 1;
-				aluResult = readData1 + readData2;
+				aluResult = readData1 - readData2;
 				break;
 			}
 			
 			
+			System.out.println("Adder result: " + address);
+			System.out.println("ALU Result: " + aluResult);
+			System.out.println("Zero: " + zero);
+			System.out.println("Mux11: " + mux11);
+			System.out.println("Mux12: " + mux12);
+
 			return new int[] {destination, readData2, aluResult, zero, address};
 		}
 		
+
 		private int[] MemoryStage(int[] EXBuffer) throws Exception {
 		
 			int destination = EXBuffer[0];
@@ -292,9 +296,11 @@ public class MIPSTrace {
 			if (zero == 1 && Branch == 1) {
 				System.out.println("Branch successful go to " + address);
 			}
+
 			
 			return new int[] { destination, aluResult, readData };
 		}
+		
 		
 		
 		private void getIn(String[] in) throws Exception {
@@ -309,15 +315,28 @@ public class MIPSTrace {
 						registers.put(Integer.parseInt(in[i]), Integer.parseInt(s.nextLine()));
 					}
 				}
-				if (opcode.equals("lw") || opcode.equals("sw") || opcode.equals("beq")) 
+				
+				if (opcode.equals("lw") || opcode.equals("sw")) 
 				{
-					for (int i = 1; i < in.length - 1; i++)
+					for (int i = 1; i < in.length - 2; i++)
 					{
 						System.out.println("Enter register value for R"+ in[i]+":");
 						registers.put(Integer.parseInt(in[i]), Integer.parseInt(s.nextLine()));
-					}
-					
+					}	
+					System.out.println("Enter register value for R" + in[3]+":");
+					registers.put(Integer.parseInt(in[3]), Integer.parseInt(s.nextLine()));
+
 				}
+				
+				if (opcode.equals("beq")) 
+					{
+						for (int i = 1; i < in.length - 1; i++)
+						{
+							System.out.println("Enter register value for R"+ in[i]+":");
+							registers.put(Integer.parseInt(in[i]), Integer.parseInt(s.nextLine()));
+						}	
+					
+					}
 
 			} catch (Exception ex) {
 				throw new Exception("Invalid Input");
