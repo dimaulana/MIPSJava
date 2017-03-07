@@ -262,7 +262,6 @@ public class MIPSTrace {
 		}
 		else if (op == 4) {
 			printControlVector(new int[] { -1, 0, 1, 0, 1, 0, 0, 0, -1});
-			System.out.println("Control Vector : [ x 0 1 0 1 0 0 0 x ]");
 			RegDST = 0;
 			ALUOp1 = 0;
 			ALUOp0 = 1;
@@ -360,7 +359,7 @@ public class MIPSTrace {
 				System.out.println("M[" + readData+"] <- R"+destination);
 			}
 			else if (MemRead == 1) {
-				System.out.println("Load Word <- M[" + readData+"]");
+				System.out.println("LOAD DATA <- M[" + readData+"]");
 			}
 			
 			
@@ -398,7 +397,7 @@ public class MIPSTrace {
 			int writeRegister = MEMBuffer[0];
 			if (RegWrite == 1)
 				System.out.println("R"+ writeRegister +" <- " + readData);
-				
+
 		}
 		
 		/*
