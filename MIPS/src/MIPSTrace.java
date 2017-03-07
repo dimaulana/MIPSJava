@@ -1,3 +1,5 @@
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -31,12 +33,14 @@ public class MIPSTrace {
 			}
 		}
 	}
-	
-	
 	String opcode;
 	int op;
+	int PC;
 	int RegDST, ALUOp1, ALUOp0, ALUSrc, Branch, MemRead, MemWrite, RegWrite, MemtoReg;
+	
+	
 	private Map<Integer, Integer> registers;
+	private Map<Integer, Integer> memory;
 	
 	
 	/*
@@ -47,22 +51,50 @@ public class MIPSTrace {
 		String[] instruction = input.split(" ");
 		
 		registers = new HashMap<Integer, Integer>();
+		memory = new HashMap<Integer, Integer>();
 
 		opcode = instruction[0];
 		getIn(instruction);
 		
-		int[] IFBuffer = InformationFetchStage(instruction, 0);
+
+		
 		
 		System.out.println("*************************************");
+		System.out.println("PC is currently: " +PC);
+		System.out.println("");
+		
+		System.out.println("Registers");
+		for(Integer key : registers.keySet()) {
+			   System.out.println("R"+key+ " value is " +registers.get(key)+ " ");
+			  			 }
+		
+		
+		System.out.println();
+		System.out.println("Memory Address");
+		for (Integer key : memory.keySet()) {
+			System.out.println("M"+ key +" value is " + memory.get(key));
+		}
+		
+		
+		System.out.println();
+		
+		System.out.println("*************************************");
+		
+		int[] IFBuffer = InformationFetch(instruction, 0);
+		System.out.println("*************************************");
+
+		System.out.println("IF STAGE");
+		System.out.println();
 		System.out.print("IF/ID Buffer" + " : [ ");
 		for (int i : IFBuffer) {
 			System.out.print(i + " ");
 		}
 		System.out.println("]");
-		
-		
-		
-		int[] IDBuffer = InformationDecodeStage(IFBuffer);
+		System.out.println("*************************************");
+
+		System.out.println("ID STAGE");
+		System.out.println();
+		int[] IDBuffer = InformationDecode(IFBuffer);
 		
 		System.out.print("ID/EX Buffer" + " : [");
 		for (int i : IDBuffer) {
@@ -71,7 +103,14 @@ public class MIPSTrace {
 		System.out.println("]");
 	
 	
-		int[] EXBuffer = ExecuteStage(IDBuffer);
+		System.out.println();
+		System.out.println("*************************************");
+
+		
+		System.out.println("EX STAGE");
+		System.out.println();
+		
+		int[] EXBuffer = InformationExecute(IDBuffer);
 		
 		System.out.print("EX/MEM Buffer" + " : [");
 		for (int i : EXBuffer) {
@@ -79,6 +118,13 @@ public class MIPSTrace {
 		}
 		System.out.println("]");
 		
+		
+		System.out.println();
+		System.out.println("*************************************");
+
+		
+		System.out.println("MEM/WB STAGE");
+		System.out.println();
 		int[] MEMBuffer = MemoryStage(EXBuffer);
 		
 		System.out.print("MEM/WB Buffer" + " : [");
@@ -88,7 +134,7 @@ public class MIPSTrace {
 		System.out.println("]");
 		
 		WriteBackStage(MEMBuffer);
-		
+
 		System.out.println("*************************************");
 	}
 	
@@ -97,9 +143,9 @@ public class MIPSTrace {
 	 * Fetches relevant data from the user
 	 * Returns IF/ID Buffer
 	 */
-	private int[] InformationFetchStage(String[] instruction, int PC) throws Exception {
+	
+	private int[] InformationFetch(String[] instruction, int PC) throws Exception {
 		
-		PC += 4;
 		
 		int operand1;
 		int operand2;
@@ -115,23 +161,23 @@ public class MIPSTrace {
 		}
 		
 		if (opcode.equals("add")) {
-			System.out.println("Semantics: $" + operand1 + " <- $" + operand2 + " + $" + operand3);
+			System.out.println("Semantics: R" + operand1 + " <- R" + operand2 + " + R" + operand3);
 			return new int[]{ 0, operand2, operand3, operand1, 0, 32, PC };
 		}
 		else if (opcode.equals("sub")) {
-			System.out.println("Semantics: $" + operand1 + " <- $" + operand2 + " - $" + operand3);
+			System.out.println("Semantics: R" + operand1 + " <- R" + operand2 + " - R" + operand3);
 			return new int[]{ 0, operand2, operand3, operand1, 0, 34, PC };
 		}
 		else if (opcode.equals("lw")) {
-			System.out.println("Semantics: $" + operand1 + " <- M[$" + operand3 + " + " + operand2 + "]");
+			System.out.println("Semantics: R" + operand1 + " <- M[R" + operand3 + " + " + operand2 + "]");
 			return new int[]{ 35, operand3, operand1, operand2, PC };
 		}
 		else if (opcode.equals("sw")) {
-			System.out.println("Semantics: " +  "M[$" + operand3 + " + " + operand2 + "]" + " <- " + operand1);
+			System.out.println("Semantics: " +  "M[R" + operand3 + " + " + operand2 + "]" + " <- R" + operand1);
 			return new int[]{ 43, operand3, operand1, operand2, PC };
 		}
 		else if (opcode.equals("beq")) {
-			System.out.println("Semantics: " +  "IF ($" + operand1 + " == $" + operand2 + ") THEN PC <- 4 + 4 * " + operand3);
+			System.out.println("Semantics: " +  "IF (R" + operand1 + " == R" + operand2 + ") THEN PC <- 4 + 4 * " + operand3);
 			return new int[]{ 4, operand1, operand2, operand3, PC };
 		}
 		else {
@@ -139,19 +185,19 @@ public class MIPSTrace {
 		}
 	}
 	
+	
 	/*
 	 *  Information Decode Stage
 	 * 	Decodes the data
 	 *  Sets the control vector
 	 *  Returns the ID/EX Buffer
 	 */
-	private int[] InformationDecodeStage(int[] IFBuffer) throws Exception {
+	private int[] InformationDecode(int[] IFBuffer) throws Exception {
 		
 		
-		int PC = -1;
-		int IR2016 = -1;
-		int IR1511 = -1;
-		int signExtended = -1;
+		int IR2016 = 0;
+		int IR1511 = 0;
+		int signExtended = 0;
 		
 		
 		if (IFBuffer[0] == 0) 	
@@ -173,13 +219,13 @@ public class MIPSTrace {
 		int op = IFBuffer[0];
 		String opcode = op + "";
 		if (op == 0) {
-			opcode += "-"+IFBuffer[5];
+			opcode += ""+IFBuffer[5];
 		}
 		System.out.println("Opcode : " + opcode);
 		System.out.println("Control Vector : [ Reg-Dst ALU-Op1 ALU-Op0 ALU-Src Branch Mem-Read Mem-Write Reg-Write Mem-to-Reg ]");
 		
 		if (op == 0) {
-			System.out.println("Control Vector : [ 1 1 0 0 0 0 0 1 0 ]");
+		System.out.println("Control Vector : [ 1 1 0 0 0 0 0 1 0 ]");
 			RegDST = 1;
 			ALUOp1 = 1;
 			ALUOp0 = 0;
@@ -242,7 +288,8 @@ public class MIPSTrace {
 	 * Performs all calculations
 	 * Returns EX/WB Buffer
 	 */
-	private int[] ExecuteStage(int[] IDBuffer) throws Exception {
+	
+		private int[] InformationExecute(int[] IDBuffer) throws Exception {
 			
 			int readData2 = IDBuffer[3];
 			int readData1 = IDBuffer[4];
@@ -284,7 +331,7 @@ public class MIPSTrace {
 			}
 			
 			
-			System.out.println("Adder result: " + address);
+			System.out.println("Adder Result: " + address);
 			System.out.println("ALU Result: " + aluResult);
 			System.out.println("Zero: " + zero);
 			System.out.println("Mux11: " + mux11);
@@ -299,31 +346,32 @@ public class MIPSTrace {
 		 * Loads data from memory when required
 		 * Returns MEM/WB Buffer
 		 */
+		
 		private int[] MemoryStage(int[] EXBuffer) throws Exception {
 		
 			int destination = EXBuffer[0];
 
-			int aluResult = EXBuffer[2];
 			int zero = EXBuffer[3];
 			int address = EXBuffer[4];
-			int readData = EXBuffer[1];
-			int readAddress = EXBuffer[2];
-			int writeData = EXBuffer[1];
-			int writeAddress = EXBuffer[2];
-		
+			int readData2 = EXBuffer[1];
+			int readData = EXBuffer[2];
+
 			if (MemWrite == 1) {
-				System.out.println("M[" + writeAddress+"] <- "+writeData);
+				System.out.println("M[" + readData+"] <- R"+destination);
 			}
 			else if (MemRead == 1) {
-				System.out.println(readData = readAddress); //M[readAddress]
+				System.out.println("R"+destination + " <- M[" + readData+"]");
 			}
+			
 			
 			if (zero == 1 && Branch == 1) {
 				System.out.println("Branch successful go to " + address);
+				PC = address;
+				System.out.println("PC is now: " + PC );
 			}
 
 			
-			return new int[] { destination, aluResult, readData  };
+			return new int[] { destination, readData2, readData };
 		}
 		
 		/*
@@ -331,22 +379,25 @@ public class MIPSTrace {
 		 * Writes relevant data to the destination register if relevant
 		 */
 		private void WriteBackStage(int[] MEMBuffer) {
-			int mux14;
-			String writeData;
+			int readData = MEMBuffer[2];
+			int readData2 = MEMBuffer[1];
+			String writeData;;
 			
 			if (MemtoReg == 1) {
-				mux14 = MEMBuffer[2];
-				writeData = "M["+mux14+"]";
+				writeData = "M["+readData2+"]";
 			}
 			else {
-				mux14 = MEMBuffer[1];
-				writeData = mux14 + "";
+				readData = MEMBuffer[2];
 			}
 			
-			System.out.println("Mux14: "+mux14);
+			if (MemWrite == 1) {
+				writeData = Integer.toString(readData2);
+			}
+			
+			System.out.println("Mux14: "+ MemtoReg);
 			int writeRegister = MEMBuffer[0];
 			if (RegWrite == 1)
-				System.out.println("R"+writeRegister+" <- " + writeData);
+				System.out.println("R"+ writeRegister +" <- " + readData);
 				
 		}
 		
@@ -356,7 +407,8 @@ public class MIPSTrace {
 		private void getIn(String[] in) throws Exception {
 			try {
 				Scanner s = new Scanner(System.in);
-				
+				PC += 4;
+
 				if (opcode.equals("add") || opcode.equals("sub"))
 				{
 					for (int i = 2; i < in.length; i++)
@@ -385,11 +437,26 @@ public class MIPSTrace {
 							System.out.println("Enter register value for R"+ in[i]+":");
 							registers.put(Integer.parseInt(in[i]), Integer.parseInt(s.nextLine()));
 						}	
-					
-					}
-
+					}				
+				getMemory();
+				
 			} catch (Exception ex) {
 				throw new Exception("Invalid Input");
 			}
+		}
+			
+			private void getMemory() throws Exception {
+				try {
+					Scanner s = new Scanner(System.in);
+					
+					System.out.println("Enter read address and data as <address> <value>: ");
+					memory.put(s.nextInt(), s.nextInt());
+					
+					System.out.println("Enter write address and data as <address> <value>: ");
+					memory.put(s.nextInt(), s.nextInt());
+										
+				} catch (Exception ex) {
+					throw new Exception("Invalid Input");
+				}
 	}
 }
