@@ -5,6 +5,11 @@ import java.util.Scanner;
 /**
  * @author Dido Maulana
  * @author Greg Berezny
+ * 
+ * user checks
+ * 
+ * overall
+ * 
  */
 public class MIPSTrace {
 	
@@ -14,11 +19,21 @@ public class MIPSTrace {
 	 */
 	public static void main(String args[]) {   
 		MIPSTrace mips = new MIPSTrace();
-		
-		try {
-			mips.startTrace();
-		} catch (Exception ex) {
-			System.out.println(ex.getMessage());
+		while (true) {	
+			System.out.println("Enter an instruction to begin the trace or 1 to exit");
+			
+			Scanner in = new Scanner(System.in);
+			String instruction = in.nextLine();
+
+			if (instruction.equals("1")) {
+				return;
+			}
+			
+			try {		
+				mips.startTrace(instruction);	
+			} catch (Exception ex) {
+				System.out.println(ex.getMessage());
+			}
 		}
 	}
 	
@@ -30,18 +45,15 @@ public class MIPSTrace {
 	private Map<Integer, Integer> registers;
 	private Map<Integer, Integer> memory;
 	
-	public void startTrace() throws Exception {
+	public void startTrace(String input) throws Exception {
+		
+		String[] instruction = input.split(" ");
 		
 		registers = new HashMap<Integer, Integer>();
 		memory = new HashMap<Integer, Integer>();
-		
-		Scanner in = new Scanner(System.in);
-		
-		String[] instruction = in.nextLine().split(" ");
+
 		opcode = instruction[0];
 		getIn(instruction);
-		
-		in.close();
 		
 		int[] IFBuffer = InformationFetch(instruction, 0);
 		
@@ -66,6 +78,14 @@ public class MIPSTrace {
 		
 		System.out.print("EX/MEM Buffer" + " : [");
 		for (int i : EXBuffer) {
+			System.out.print(i + " ");
+		}
+		System.out.println("]");
+		
+		int[] MEMBuffer = MemoryStage(EXBuffer);
+		
+		System.out.print("MEM/WB Buffer" + " : [");
+		for (int i : MEMBuffer) {
 			System.out.print(i + " ");
 		}
 		System.out.println("]");
@@ -247,6 +267,33 @@ public class MIPSTrace {
 			
 			
 			return new int[] {destination, readData2, aluResult, zero, address};
+		}
+		
+		private int[] MemoryStage(int[] EXBuffer) throws Exception {
+		
+			int destination = EXBuffer[0];
+
+			int aluResult = EXBuffer[2];
+			int zero = EXBuffer[3];
+			int address = EXBuffer[4];
+			int readData = EXBuffer[1];
+			int readAddress = EXBuffer[2];
+			int writeData = EXBuffer[1];
+			int writeAddress = EXBuffer[2];
+		
+			if (MemWrite == 1) {
+				System.out.println("M[" + readAddress+"] <- "+readData);
+			}
+			else if (MemRead == 1) {
+				System.out.println(readData + " <- M[" + readAddress+"]");
+			}
+			
+			
+			if (zero == 1 && Branch == 1) {
+				System.out.println("Branch successful go to " + address);
+			}
+			
+			return new int[] { destination, aluResult, readData };
 		}
 		
 		
