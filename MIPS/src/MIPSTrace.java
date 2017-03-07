@@ -31,25 +31,27 @@ public class MIPSTrace {
 			}
 		}
 	}
+	
+	
 	String opcode;
 	int op;
 	int RegDST, ALUOp1, ALUOp0, ALUSrc, Branch, MemRead, MemWrite, RegWrite, MemtoReg;
-	
-	
 	private Map<Integer, Integer> registers;
-	private Map<Integer, Integer> memory;
 	
+	
+	/*
+	 * Runs through a trace of one instruction 
+	 */
 	public void startTrace(String input) throws Exception {
 		
 		String[] instruction = input.split(" ");
 		
 		registers = new HashMap<Integer, Integer>();
-		memory = new HashMap<Integer, Integer>();
 
 		opcode = instruction[0];
 		getIn(instruction);
 		
-		int[] IFBuffer = InformationFetch(instruction, 0);
+		int[] IFBuffer = InformationFetchStage(instruction, 0);
 		
 		System.out.println("*************************************");
 		System.out.print("IF/ID Buffer" + " : [ ");
@@ -60,7 +62,7 @@ public class MIPSTrace {
 		
 		
 		
-		int[] IDBuffer = InformationDecode(IFBuffer);
+		int[] IDBuffer = InformationDecodeStage(IFBuffer);
 		
 		System.out.print("ID/EX Buffer" + " : [");
 		for (int i : IDBuffer) {
@@ -69,7 +71,7 @@ public class MIPSTrace {
 		System.out.println("]");
 	
 	
-		int[] EXBuffer = InformationExecute(IDBuffer);
+		int[] EXBuffer = ExecuteStage(IDBuffer);
 		
 		System.out.print("EX/MEM Buffer" + " : [");
 		for (int i : EXBuffer) {
@@ -84,10 +86,18 @@ public class MIPSTrace {
 			System.out.print(i + " ");
 		}
 		System.out.println("]");
+		
+		WriteBackStage(MEMBuffer);
+		
 		System.out.println("*************************************");
 	}
 	
-	private int[] InformationFetch(String[] instruction, int PC) throws Exception {
+	/*
+	 * Information Fetch Stage
+	 * Fetches relevant data from the user
+	 * Returns IF/ID Buffer
+	 */
+	private int[] InformationFetchStage(String[] instruction, int PC) throws Exception {
 		
 		PC += 4;
 		
@@ -129,7 +139,13 @@ public class MIPSTrace {
 		}
 	}
 	
-	private int[] InformationDecode(int[] IFBuffer) throws Exception {
+	/*
+	 *  Information Decode Stage
+	 * 	Decodes the data
+	 *  Sets the control vector
+	 *  Returns the ID/EX Buffer
+	 */
+	private int[] InformationDecodeStage(int[] IFBuffer) throws Exception {
 		
 		
 		int PC = -1;
@@ -221,7 +237,12 @@ public class MIPSTrace {
 		return new int[] { IR1511, IR2016, signExtended, readData2, readData1, PC };
 	}
 	
-		private int[] InformationExecute(int[] IDBuffer) throws Exception {
+	/*
+	 * Execute Stage
+	 * Performs all calculations
+	 * Returns EX/WB Buffer
+	 */
+	private int[] ExecuteStage(int[] IDBuffer) throws Exception {
 			
 			int readData2 = IDBuffer[3];
 			int readData1 = IDBuffer[4];
@@ -272,7 +293,12 @@ public class MIPSTrace {
 			return new int[] {destination, readData2, aluResult, zero, address};
 		}
 		
-
+		/*
+		 * Memory Stage
+		 * Branches when required
+		 * Loads data from memory when required
+		 * Returns MEM/WB Buffer
+		 */
 		private int[] MemoryStage(int[] EXBuffer) throws Exception {
 		
 			int destination = EXBuffer[0];
@@ -286,23 +312,47 @@ public class MIPSTrace {
 			int writeAddress = EXBuffer[2];
 		
 			if (MemWrite == 1) {
-				System.out.println("M[" + readAddress+"] <- "+readData);
+				System.out.println("M[" + writeAddress+"] <- "+writeData);
 			}
 			else if (MemRead == 1) {
-				System.out.println(readData + " <- M[" + readAddress+"]");
+				System.out.println(readData = readAddress); //M[readAddress]
 			}
-			
 			
 			if (zero == 1 && Branch == 1) {
 				System.out.println("Branch successful go to " + address);
 			}
 
 			
-			return new int[] { destination, aluResult, readData };
+			return new int[] { destination, aluResult, readData  };
 		}
 		
+		/*
+		 * WriteBack Stage
+		 * Writes relevant data to the destination register if relevant
+		 */
+		private void WriteBackStage(int[] MEMBuffer) {
+			int mux14;
+			String writeData;
+			
+			if (MemtoReg == 1) {
+				mux14 = MEMBuffer[2];
+				writeData = "M["+mux14+"]";
+			}
+			else {
+				mux14 = MEMBuffer[1];
+				writeData = mux14 + "";
+			}
+			
+			System.out.println("Mux14: "+mux14);
+			int writeRegister = MEMBuffer[0];
+			if (RegWrite == 1)
+				System.out.println("R"+writeRegister+" <- " + writeData);
+				
+		}
 		
-		
+		/*
+		 * Method to get all relevant data from the user
+		 */
 		private void getIn(String[] in) throws Exception {
 			try {
 				Scanner s = new Scanner(System.in);
